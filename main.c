@@ -174,32 +174,37 @@ static void key_handler(GLFWwindow *window,
 	}
 }
 
-bool setup_glfw(GLFWwindow **window) {
+void glfw_error_callback(int error_code, const char* description) {
+	fprintf(stderr, "%s\n", description);
+}
+
+int setup_glfw(GLFWwindow **window) {
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwSetErrorCallback(glfw_error_callback);
 
 	*window = glfwCreateWindow(800, 800, WINDOW_TITLE, NULL, NULL);
 	if (*window == NULL) {
 		LOG_ERROR("Failed to create GLFW window");
 		glfwTerminate();
-		return false;
+		return glfwGetError(NULL);
 	}
 
 	glfwMakeContextCurrent(*window);
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
 		LOG_ERROR("Failed to initialize GLAD");
 		glfwTerminate();
-		return false;
+		return glfwGetError(NULL);
 	}
 
-	// bind key_hadler
+	// bind key_handler
 	glfwSetKeyCallback(*window, key_handler);
 
-	// bind the callback whiech sets the rendering context size on window resize
+	// bind the callback which sets the rendering context size on window resize
 	glfwSetFramebufferSizeCallback(*window, framebuffer_size_callback);
-	return true;
+	return 0;
 }
 
 int main (void) {
@@ -212,7 +217,10 @@ int main (void) {
 		 0.00f,  0.466f, 0.00f
 	};
 
-	setup_glfw(&window);
+	int error_code;
+	if((error_code = setup_glfw(&window)) != 0) {
+		return error_code;
+	}
 
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
